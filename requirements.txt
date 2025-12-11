@@ -1,0 +1,37 @@
+keyboard
+
+sudo apt update
+sudo apt install -y \
+    python3-pip \
+    python3-dev \
+    freetds-bin freetds-dev \
+    unixodbc unixodbc-dev \
+    python3-evdev \
+    libpq-dev \
+    python3-rpi.gpio
+
+
+# python3-dev  - this install header files and build tools for python
+# unixodbc-dev - Development files for UnixODBC
+
+#python3-evdev
+
+# *Installs the Python module evdev from the Debian/Raspberry Pi repositories.
+
+# *evdev lets us read from /dev/input/... devices (like your USB barcode scanner acting as a keyboard).
+
+#* This is how our code reads keypress events from the scanner in headless mode.
+
+
+# sudo apt install -y python3-rpi.gpio
+pip3 install pyodbc
+
+
+# Also makesure pi has permission to read input devices
+sudo usermod -a -G input pi
+sudo reboot
+
+# ! Scanner input check
+# ! ls -l /dev/input/by-id
+
+
