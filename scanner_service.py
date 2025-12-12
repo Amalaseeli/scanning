@@ -1,5 +1,6 @@
 from evdev import InputDevice, categorize, ecodes
 from datetime import datetime
+import log_config
 import logging
 import os 
 import json
@@ -7,7 +8,7 @@ import threading
 import queue
 from config_utils import load_config
 
-
+logger = logging.getLogger(__name__)
 
 KEYMAP = {
     "KEY_0": "0", "KEY_1": "1", "KEY_2": "2", "KEY_3": "3", "KEY_4": "4",
@@ -37,13 +38,12 @@ def keycode_to_char(keycode:str, shift:bool) -> str:
 
 def main():
     config = load_config()
-    scanner_device = config.get("scanner_input_device", "/dev/input/by-id/usb-Newtologic_4010E_XXXXXX-event-kbd")
-
-    log_file_path = config.get("log_file_path", "Scanning/scan_data.log")
-    os.makedirs(os.path.dirname(log_file_path), exist_ok=True)
+    scanner_device = config.get("scanner_input_device", "/dev/input/by-id/usb-Newtologic_4010E_XXXXXX-event-kbd")  
 
     # Open Scanner device
     device = InputDevice(scanner_device)
+    device_id = config.get("Device_id")
+    entry_no = config.get("Starting_entry_no", 1)
 
     buffer = ""
     shift = False
@@ -58,8 +58,7 @@ def main():
         key_event = categorize(event)
 
         if key_event.keystate != key_event.key_down:
-            continue
-        
+            continue       
 
         keycode = key_event.keycode
 
@@ -77,13 +76,13 @@ def main():
                 barcode = buffer
                 buffer = ""
                 shift = False
-
-                timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                line = f"{timestamp} - Scanned Barcode: {barcode}"
-                print(line)
-
-                with open(log_file_path, "a") as log_file:
-                    log_file.write(line + "\n")
+                entry_no += 1
+                logger.info(
+                    "Entry_no = %s, Device_id = %s, Scanner = %s, Barcode= %s",
+                    entry_no,
+                    device_id,
+                    scanner_device,
+                    barcode,)
             continue
 
         char = keycode_to_char(keycode, shift)

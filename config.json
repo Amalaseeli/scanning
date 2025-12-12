@@ -3,14 +3,8 @@
     "Sql_connection_credentials": "DRIVER=FreeTDS;SERVER=192.168.0.142;PORT=2003;DATABASE=EposV3;UID=sa;PWD=mg812yn;Encrypt=yes;TrustServerCertificate=yes;TDS_Version=7.4",
     "Starting_entry_no ": 1,
     "Table_name": "Do_Co_Scanning_Data",
-
-    "db_save_interval" : 1800,
-    
+    "db_save_interval" : 1800,    
     "user_id": "default_user",
     "scanner_input_device": "/dev/input/by-id/usb-Newtologic_4010E_XXXXXX-event-kbd",
-
-
-    "log_file_path": "Scanning/scan_data.log"
-    
-  
+    "log_file_path": "Scanning/scan_data.log"    
 }
