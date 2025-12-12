@@ -5,6 +5,6 @@
     "Table_name": "Do_Co_Scanning_Data",
     "db_save_interval" : 1800,    
     "user_id": "default_user",
-    "scanner_input_device": "/dev/input/by-id/usb-Newtologic_4010E_XXXXXX-event-kbd",
+    "Scanner_input_device": "/dev/input/by-id/usb-Newtologic_4010E_XXXXXX-event-kbd",
     "log_file_path": "Scanning/scan_data.log"    
 }

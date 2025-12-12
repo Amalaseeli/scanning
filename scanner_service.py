@@ -38,7 +38,7 @@ def keycode_to_char(keycode:str, shift:bool) -> str:
 
 def main():
     config = load_config()
-    scanner_device = config.get("scanner_input_device", "/dev/input/by-id/usb-Newtologic_4010E_XXXXXX-event-kbd")  
+    scanner_device = config.get("Scanner_input_device", "/dev/input/by-id/usb-Newtologic_4010E_XXXXXX-event-kbd")  
 
     # Open Scanner device
     device = InputDevice(scanner_device)
