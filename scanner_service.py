@@ -42,7 +42,7 @@ def format_parent_child_record(raw_barcode:str) -> str:
     raw_barcode = raw_barcode.strip()
 
     # Pattern match itemcode-quantity
-    match = re.search(r"([A-Za-z]{2,}\d+)-(\d+)", raw_barcode)
+    match = re.search(r"-(?P<item>[A-Za-z]{2,}\d+)-(?P<qty>\d+)", raw_barcode)
 
     # If child barcode not found.
     if not match:
@@ -50,7 +50,7 @@ def format_parent_child_record(raw_barcode:str) -> str:
     
     parent_code = raw_barcode[:match.start()].rstrip("-")
 
-    child_code = raw_barcode[match.start():]
+    child_code = raw_barcode[match.start()+1:]
 
     child_code= re.sub(r"(\d)(?=[A-Za-z]{2,}\d+-\d+)", r"\1|", child_code)
 
@@ -59,7 +59,7 @@ def format_parent_child_record(raw_barcode:str) -> str:
 
     formatted_children = []
     for token in tokens:
-        token.strip("-").strip()
+        token = token.strip("-").strip()
         mm = re.fullmatch(r"([A-Za-z]{2,}\d+)-(\d+)", token)
         if not mm: 
             continue
@@ -69,7 +69,7 @@ def format_parent_child_record(raw_barcode:str) -> str:
     if not formatted_children:
         return parent_code
     
-    return f"{parent_code}[{'|'.join(formatted_children)}]"
+    return f"{parent_code} [{'|'.join(formatted_children)}]"
 
 
 def load_entry_no(config:dict) -> int:
