@@ -7,6 +7,8 @@ import json
 import threading
 import queue
 from config_utils import load_config
+import re
+
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +36,42 @@ def keycode_to_char(keycode:str, shift:bool) -> str:
     if character.isalpha():
         return character.upper() if shift else character.lower()
     return character
+
+def format_parent_child_record(raw_barcode:str) -> str:
+    """Format barcode for parent-child relationship."""
+    raw_barcode = raw_barcode.strip()
+
+    # Pattern match itemcode-quantity
+    match = re.match(r"([A-za-z]{2,}\d+)-(\d+)", raw_barcode)
+
+    # If child barcode not found.
+    if not match:
+        return raw_barcode
+    
+    parent_code = raw_barcode[:match.start()].rstrip("-")
+
+    child_code = raw_barcode[match.start():]
+
+    child_code= re.sub(r"(\d)(?=[A-Za-z]{2,}\d+-\d+)", r"\1|", child_code)
+
+    # Split token with '|'
+    tokens = child_code.split("|")
+
+    formatted_children = []
+    for token in tokens:
+        token.strip("-").strip()
+        mm = re.fullmatch(r"([A-za-z]{2,}\d+)-(\d+)", token)
+        if not mm: 
+            continue
+        item, quantity = mm.group(1).upper(), mm.group(2)
+        formatted_children.append(f"{item}-{quantity}")
+
+    if not formatted_children:
+        return parent_code
+    
+    return f"{parent_code}|{'|'.join(formatted_children)}"
+
+
 
 
 def main():
@@ -73,16 +111,18 @@ def main():
         # End of barcode
         if keycode == "KEY_ENTER":
             if buffer:
-                barcode = buffer
+                #barcode = buffer
+                barcode = format_parent_child_record(buffer)
                 buffer = ""
                 shift = False
-                entry_no += 1
                 logger.info(
                     "Entry_no = %s, Device_id = %s, Scanner = %s, Barcode= %s",
                     entry_no,
                     device_id,
                     scanner_device,
-                    barcode,)
+                    barcode,
+                )
+                entry_no += 1
             continue
 
         char = keycode_to_char(keycode, shift)
@@ -99,6 +139,5 @@ if __name__ == "__main__":
 
 
             
-
 
 
