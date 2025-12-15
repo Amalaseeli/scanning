@@ -112,15 +112,17 @@ def main():
         if keycode == "KEY_ENTER":
             if buffer:
                 #barcode = buffer
-                barcode = format_parent_child_record(buffer)
+                raw_barcode = buffer
                 buffer = ""
                 shift = False
+                formatted_barcode = format_parent_child_record(raw_barcode)
+
                 logger.info(
                     "Entry_no = %s, Device_id = %s, Scanner = %s, Barcode= %s",
                     entry_no,
                     device_id,
                     scanner_device,
-                    barcode,
+                    formatted_barcode,
                 )
                 entry_no += 1
             continue
