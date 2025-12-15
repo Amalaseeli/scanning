@@ -109,7 +109,7 @@ def main():
     # Open Scanner device
     device = InputDevice(scanner_device)
     device_id = config.get("Device_id")
-    entry_no = load_config(config)
+    entry_no = load_entry_no(config)
 
     buffer = ""
     shift = False
