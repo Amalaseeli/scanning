@@ -10,7 +10,7 @@ from config_utils import load_config
 import re
 
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("scanner_service")
 
 KEYMAP = {
     "KEY_0": "0", "KEY_1": "1", "KEY_2": "2", "KEY_3": "3", "KEY_4": "4",
@@ -42,7 +42,7 @@ def format_parent_child_record(raw_barcode:str) -> str:
     raw_barcode = raw_barcode.strip()
 
     # Pattern match itemcode-quantity
-    match = re.match(r"([A-za-z]{2,}\d+)-(\d+)", raw_barcode)
+    match = re.search(r"([A-Za-z]{2,}\d+)-(\d+)", raw_barcode)
 
     # If child barcode not found.
     if not match:
@@ -60,18 +60,46 @@ def format_parent_child_record(raw_barcode:str) -> str:
     formatted_children = []
     for token in tokens:
         token.strip("-").strip()
-        mm = re.fullmatch(r"([A-za-z]{2,}\d+)-(\d+)", token)
+        mm = re.fullmatch(r"([A-Za-z]{2,}\d+)-(\d+)", token)
         if not mm: 
             continue
         item, quantity = mm.group(1).upper(), mm.group(2)
-        formatted_children.append(f"{item}-{quantity}")
+        formatted_children.append(f"{item}_{quantity}")
 
     if not formatted_children:
         return parent_code
     
-    return f"{parent_code}|{'|'.join(formatted_children)}"
+    return f"{parent_code}[{'|'.join(formatted_children)}]"
 
 
+def load_entry_no(config:dict) -> int:
+    state_file = config.get("state_file")
+    start_entry_no = int(config.get("Starting_entry_no", 1))
+
+    if not state_file:
+        return start_entry_no
+    
+    try:
+        with open(state_file, "r") as f:
+            state_data = json.load(f)
+            return int(state_data.get("last_entry_no", start_entry_no))
+    except (FileNotFoundError, json.JSONDecodeError):
+        return start_entry_no
+    except Exception as e:
+        logger.error("Error loading state file: %s", e)
+        return start_entry_no
+
+def save_entry_no(config:dict, next_entry_no:int)-> None:
+    state_file = config.get("state_file")
+    if not state_file:
+        return
+    
+    os.makedirs(os.path.dirname(state_file), exist_ok=True)
+    tmp = state_file + ".tmp"
+
+    with open(tmp, "w") as f:
+            json.dump({"last_entry_no": next_entry_no}, f)
+    os.replace(tmp, state_file)
 
 
 def main():
@@ -81,7 +109,7 @@ def main():
     # Open Scanner device
     device = InputDevice(scanner_device)
     device_id = config.get("Device_id")
-    entry_no = config.get("Starting_entry_no", 1)
+    entry_no = load_config(config)
 
     buffer = ""
     shift = False
@@ -125,6 +153,7 @@ def main():
                     formatted_barcode,
                 )
                 entry_no += 1
+                save_entry_no(config, entry_no)
             continue
 
         char = keycode_to_char(keycode, shift)
