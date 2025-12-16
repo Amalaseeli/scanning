@@ -37,44 +37,64 @@ def keycode_to_char(keycode:str, shift:bool) -> str:
         return character.upper() if shift else character.lower()
     return character
 
-def format_parent_child_record(raw_barcode:str) -> str:
-    """Format barcode for parent-child relationship."""
-    raw_barcode = raw_barcode.strip()
 
-    # Pattern match itemcode-quantity
-    start_match = re.search(r"-([A-Za-z]{2,}\d+)-(\d+)(?=[A-Za-z]{2,}\d+-\d+)", raw_barcode)   
+def format_parent_child_record(raw_barcode: str) -> str:
+    raw = raw_barcode.strip()
+    # No children → return full parent
+    if "[" not in raw:
+        return raw.rstrip("-")
 
-    # If child barcode not found.
-    if not start_match:
-        start_match = re.search(r"-([A-Za-z]{2,}\d+)-(\d+)", raw_barcode,re.IGNORECASE)
-    if not start_match:
-        cleaned_parentcode = raw_barcode.strip()
-        if cleaned_parentcode.startswith("[") and cleaned_parentcode.endswith("]"):
-            cleaned_parentcode = cleaned_parentcode[1:-1].strip()
-        return cleaned_parentcode.rstrip("-").strip()
-
-    parent_code = raw_barcode[:start_match.start()].rstrip("-")
-
-    child_code = raw_barcode[start_match.start():].lstrip("-")
-
-    child_code= re.sub(r"(\d)(?=[A-Za-z]{2,}\d+-\d+)", r"\1|", child_code, flags = re.IGNORECASE)
-
-    # Split token with '|'
-    tokens = child_code.split("|")
+    parent_part, _, child_part = raw.partition("[")
+    parent_code = parent_part.rstrip("- ").strip()
+    child_code = child_part.rstrip("]").replace("~", "|")
 
     formatted_children = []
-    for token in tokens:
-        token = token.strip("-").strip()
-        mm = re.fullmatch(r"([A-Za-z]{2,}\d+)-(\d+)", token, flags=re.IGNORECASE)
-        if not mm: 
-            continue
-        item, quantity = mm.group(1).upper(), mm.group(2)
-        formatted_children.append(f"{item}_{quantity}")
+    for token in child_code.split("|"):
+        token = token.strip("- ").strip()
+        mm = re.fullmatch(r"([A-Za-z]{2,}\d+)_?-(\d+)", token, flags=re.IGNORECASE)
+        if mm:
+            formatted_children.append(f"{mm.group(1).upper()}_{mm.group(2)}")
 
-    if not formatted_children:
-        return parent_code
+    return parent_code if not formatted_children else f"{parent_code} [{'|'.join(formatted_children)}]"
+
+# def format_parent_child_record(raw_barcode:str) -> str:
+#     """Format barcode for parent-child relationship."""
+#     raw_barcode = raw_barcode.strip()
+
+#     # Pattern match itemcode-quantity
+#     start_match = re.search(r"-([A-Za-z]{2,}\d+)-(\d+)(?=[A-Za-z]{2,}\d+-\d+)", raw_barcode)   
+
+#     # If child barcode not found.
+#     if not start_match:
+#         start_match = re.search(r"-([A-Za-z]{2,}\d+)-(\d+)", raw_barcode,re.IGNORECASE)
+#     if not start_match:
+#         cleaned_parentcode = raw_barcode.strip()
+#         if cleaned_parentcode.startswith("[") and cleaned_parentcode.endswith("]"):
+#             cleaned_parentcode = cleaned_parentcode[1:-1].strip()
+#         return cleaned_parentcode.rstrip("-").strip()
+
+#     parent_code = raw_barcode[:start_match.start()].rstrip("-")
+
+#     child_code = raw_barcode[start_match.start():].lstrip("-")
+
+#     child_code= re.sub(r"(\d)(?=[A-Za-z]{2,}\d+-\d+)", r"\1|", child_code, flags = re.IGNORECASE)
+
+#     # Split token with '|'
+#     tokens = child_code.split("|")
+
+#     formatted_children = []
+#     for token in tokens:
+#         token = token.strip("-").strip()
+#         mm = re.fullmatch(r"([A-Za-z]{2,}\d+)-(\d+)", token, flags=re.IGNORECASE)
+#         if not mm: 
+#             continue
+#         item, quantity = mm.group(1).upper(), mm.group(2)
+#         formatted_children.append(f"{item}_{quantity}")
+
+#     if not formatted_children:
+#         return parent_code
     
-    return f"{parent_code} [{'|'.join(formatted_children)}]"
+#     return f"{parent_code} [{'|'.join(formatted_children)}]"
 
 
 def load_entry_no(config:dict) -> int:

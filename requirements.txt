@@ -28,6 +28,8 @@ pip3 install pyodbc
 
 
 # Also makesure pi has permission to read input devices
+
+whoami
 sudo usermod -a -G input pi
 sudo reboot
 
