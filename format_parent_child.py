@@ -48,8 +48,11 @@ def format_parent_child_record(raw_barcode:str) -> str:
     if not start_match:
         start_match = re.search(r"-([A-Za-z]{2,}\d+)-(\d+)", raw_barcode,re.IGNORECASE)
     if not start_match:
-        return raw_barcode
-    
+        cleaned_parentcode = raw_barcode.strip()
+        if cleaned_parentcode.startswith("[") and cleaned_parentcode.endswith("]"):
+            cleaned_parentcode = cleaned_parentcode[1:-1].strip()
+        return cleaned_parentcode.rstrip("-").strip()
+
     parent_code = raw_barcode[:start_match.start()].rstrip("-")
 
     child_code = raw_barcode[start_match.start():].lstrip("-")
