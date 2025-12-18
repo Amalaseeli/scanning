@@ -1,11 +1,38 @@
 {
     "Device_id": "PI-01",
-    "Sql_connection_credentials": "DRIVER=FreeTDS;SERVER=192.168.0.142;PORT=2003;DATABASE=EposV3;UID=sa;PWD=mg812yn;Encrypt=yes;TrustServerCertificate=yes;TDS_Version=7.4",
-    "Starting_entry_no": 1,
-    "Table_name": "Do_Co_Scanning_Data",
-    "db_save_interval" : 1800,    
     "user_id": "default_user",
+
     "Scanner_input_device": "/dev/input/by-id/usb-Newtologic_4010E_XXXXXX-event-kbd",
+
+    "Sql_connection_credentials": "DRIVER=FreeTDS;SERVER=192.168.0.142;PORT=2003;DATABASE=EposV3;UID=sa;PWD=mg812yn;Encrypt=yes;TrustServerCertificate=yes;TDS_Version=7.4",
+    "Table_name": "Do_Co_Scanning_Data",
+
+    "Starting_entry_no": 1,
+    
+    "db_save_interval" : 1800,    
+   
     "log_file_path": "Scanning/scan_data.log" ,
-    "state_file": "Scanning/scanner_state.json" 
+    "state_file": "Scanning/scanner_state.json",
+    "spool_file": "Scanning/spool_data.jsonl",
+    "spool_offset_file": "Scanning/spool.offset",
+
+    "Scanner_timeout_seconds": 300,
+    "BUZZER_ENABLED": true,
+    "buzzer_pin": 18, 
+    "buzzer_duration": 0.2,
+    "buzzer_repeat": 1,
+    "buzzer_pause": 0.05,
+
+
+    "beep_patterns": {
+    "READY":        [0.12],
+    "SCAN_OK":      [0.05],
+    "DB_FAIL":      [0.15, 0.15],
+    "EXCEPTION":    [0.05, 0.05, 0.05],
+    "SCANNER_LOST": [0.30],
+    "DB_RECOVER":   [0.05, 0.10, 0.05]
+    },
+    "beep_pause_sec": 0.06
+
+
 }

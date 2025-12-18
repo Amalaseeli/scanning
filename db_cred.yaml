@@ -1,0 +1,9 @@
+server: 192.168.68.103
+port: 2001
+database: "EposV3"
+username: "sa"
+password: "mg812yn"
+driver: FreeTDS
+
+encrypt: yes
+trust_server_certificate: yes
