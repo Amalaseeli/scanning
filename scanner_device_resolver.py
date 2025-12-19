@@ -65,7 +65,4 @@ def resolve_user(cfg: dict, dev_path: str) -> str:
         if base == key_base or base.endswith(key_base):
             return val
 
-    if cfg.get("user_id"):
-        return cfg["user_id"]
-
     return ""

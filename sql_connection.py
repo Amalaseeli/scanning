@@ -16,7 +16,6 @@ CREATE TABLE {table_name} (
     ID BIGINT IDENTITY(1,1) NOT NULL,
     DeviceID NVARCHAR(50) NOT NULL,
     ScannerName NVARCHAR(255) NULL,
-    PreferredUser NVARCHAR(100) NULL,
     EntryNo INT NOT NULL,
     Barcode NVARCHAR(255) NOT NULL,
     ScanDate DATE NOT NULL,
@@ -102,17 +101,6 @@ def ensure_table_exists(conn, table: str) -> bool:
                 except Exception:
                     pass
 
-                # Ensure PreferredUser column exists; add if missing.
-                try:
-                    cur.execute(
-                        "SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = ? AND COLUMN_NAME = 'PreferredUser'",
-                        table.split(".")[-1],
-                    )
-                    if not cur.fetchone():
-                        cur.execute(f"ALTER TABLE {quoted_table} ADD PreferredUser NVARCHAR(100) NULL")
-                        conn.commit()
-                except Exception:
-                    pass
                 return False
         except Exception:
             # Fallback: probe table
@@ -210,9 +198,9 @@ def db_flush_worker(cfg: dict) -> None:
 
     insert_sql = f"""
         INSERT INTO {quoted_table}
-        (DeviceID, ScannerName, PreferredUser, EntryNo, Barcode, ScanDate, ScanTime, UserID,
+        (DeviceID, ScannerName, EntryNo, Barcode, ScanDate, ScanTime, UserID,
          Stowage, FlightNo, OrderDate, DACS_CLASS, Leg, Gally, BlockNo, ContainerCode, DES, DACS_ACType)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """
 
     while not stop_event.is_set():
@@ -265,7 +253,6 @@ def db_flush_worker(cfg: dict) -> None:
                         insert_sql,
                         rec["DeviceID"],
                         rec.get("ScannerName"),
-                        rec.get("PreferredUser"),
                         rec["EntryNo"],
                         rec["Barcode"],
                         rec["ScanDate"],
@@ -310,7 +297,6 @@ def db_flush_worker(cfg: dict) -> None:
                                 insert_sql,
                                 rec["DeviceID"],
                                 rec.get("ScannerName"),
-                                rec.get("PreferredUser"),
                                 rec["EntryNo"],
                                 rec["Barcode"],
                                 rec["ScanDate"],

@@ -128,9 +128,10 @@ def parse_parent_fields(parent_barcode: str) -> dict:
 def scanner_worker(cfg: dict, buzzer: BuzzerService | None = None) -> None:
     dev_path = resolve_scanner_device(cfg)
     device_id = cfg_get(cfg, "device_id", "Device_id")
-    user_id = resolve_user(cfg, dev_path)
-    scanner_name = user_id or os.path.basename(dev_path)
-    preferred_user = scanner_name
+    config_user = cfg_get(cfg, "user_id", "User_id")
+    resolved_user = resolve_user(cfg, dev_path)
+    scanner_name = resolved_user or os.path.basename(dev_path)
+    user_id = config_user or scanner_name
 
     entry_no = load_entry_no(cfg)
     buffer = ""
@@ -176,7 +177,6 @@ def scanner_worker(cfg: dict, buzzer: BuzzerService | None = None) -> None:
                         rec = {
                             "DeviceID": device_id,
                             "ScannerName": scanner_name,
-                            "PreferredUser": preferred_user,
                             "EntryNo": entry_no,
                             "Barcode": barcode_formatted,
                             "ScanDate": now.date().isoformat(),
