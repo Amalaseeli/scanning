@@ -1,7 +1,7 @@
 {
     "Device_id": "PI-01",
     "user_id": "default_user",
-    "default_user": "default_user",
+    
     "scanner_user_map": {
         "event-kbd": "warehouse_user"
     },

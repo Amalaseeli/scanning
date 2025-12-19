@@ -129,7 +129,7 @@ def scanner_worker(cfg: dict, buzzer: BuzzerService | None = None) -> None:
     dev_path = resolve_scanner_device(cfg)
     device_id = cfg_get(cfg, "device_id", "Device_id")
     user_id = resolve_user(cfg, dev_path)
-    preferred_user = user_id
+    preferred_user = user_id or os.path.basename(dev_path)
 
     entry_no = load_entry_no(cfg)
     buffer = ""

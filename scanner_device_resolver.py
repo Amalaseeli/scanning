@@ -52,7 +52,7 @@ def resolve_user(cfg: dict, dev_path: str) -> str:
     Resolve user name based on config or device path:
       1) If user_id is set, use it.
       2) If scanner_user_map has an entry for the full path or basename, use that.
-      3) Otherwise use default_user (or 'default_user').
+      3) Otherwise return empty string.
     """
     if cfg.get("user_id"):
         return cfg["user_id"]
@@ -66,5 +66,4 @@ def resolve_user(cfg: dict, dev_path: str) -> str:
         if os.path.basename(key) == base:
             return val
 
-    return cfg.get("default_user", "default_user")
-
+    return ""
