@@ -41,14 +41,19 @@ class DatabaseConnector:
 
         driver_val = cfg.get("driver")
         if isinstance(driver_val, dict):
-            # Handle YAML inline mapping like {ODBC Driver 18 for SQL Server}
             driver_val = next(iter(driver_val.keys()), "")
         driver_str = str(driver_val or "").strip()
         if not driver_str:
             raise ValueError("Missing driver in DB config.")
 
+        # If the driver is a full path to libtdsodbc.so, don't wrap in braces.
+        if "/" in driver_str or driver_str.endswith(".so"):
+            driver_part = f"DRIVER={driver_str}"
+        else:
+            driver_part = f"DRIVER={{{driver_str}}}"
+
         parts = [
-            f"DRIVER={{{driver_str}}}",
+            driver_part,
             f"SERVER={server}",
             f"DATABASE={cfg['database']}",
             f"ENCRYPT={cfg['encrypt']}",
