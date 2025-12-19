@@ -6,7 +6,6 @@
         "event-kbd": "warehouse_user"
     },
 
-    "Scanner_input_device": "/dev/input/by-id/usb-Newtologic_4010E_XXXXXX-event-kbd",
     "scanner_device_filter": "",
 
     "Table_name": "Do_Co_Scanning_Data",

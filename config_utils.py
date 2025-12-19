@@ -8,13 +8,13 @@ def load_config():
         with open (CONFIG_PATH, "r") as file:
             config_credentials = json.load(file)
 
+        # Device_id/Table_name/etc. are required; Scanner_input_device is now optional
         required = [
             "Device_id",
             "Starting_entry_no",
             "Table_name",
             "db_save_interval",
             "log_file_path",
-            "Scanner_input_device"
         ]
 
         for cred in required:
