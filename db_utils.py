@@ -39,7 +39,7 @@ class DatabaseConnector:
 
         server = f"{cfg['server']}:{cfg['port']}" if cfg.get("port") else cfg["server"]
         parts = [
-            f"DRIVER={{{{{cfg['driver']}}}}}",
+            f"DRIVER={{{cfg['driver']}}}",
             f"SERVER={server}",
             f"DATABASE={cfg['database']}",
             f"ENCRYPT={cfg['encrypt']}",
