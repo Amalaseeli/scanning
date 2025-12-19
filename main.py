@@ -13,6 +13,7 @@ from datetime import date
 
 from sql_connection import append_spool, cfg_get, db_flush_worker, load_entry_no, log, save_entry_no, stop_event
 from buzzer import BuzzerService
+from scanner_device_resolver import resolve_scanner_device, resolve_user
 
 base_dir = pathlib.Path(__file__).parent.resolve()
 config_path = base_dir / 'config.json'
@@ -125,9 +126,9 @@ def parse_parent_fields(parent_barcode: str) -> dict:
 
 
 def scanner_worker(cfg: dict, buzzer: BuzzerService | None = None) -> None:
-    dev_path = cfg_get(cfg, "scanner_input_device", "Scanner_input_device")
+    dev_path = resolve_scanner_device(cfg)
     device_id = cfg_get(cfg, "device_id", "Device_id")
-    user_id = cfg_get(cfg, "user_id")
+    user_id = resolve_user(cfg, dev_path)
 
     entry_no = load_entry_no(cfg)
     buffer = ""
@@ -137,6 +138,8 @@ def scanner_worker(cfg: dict, buzzer: BuzzerService | None = None) -> None:
         try:
             dev = InputDevice(dev_path)
             log(cfg, f"Scanner opened: {dev_path}")
+            if buzzer is not None:
+                buzzer.enqueue("READY")
 
             for event in dev.read_loop():
                 if stop_event.is_set():
@@ -170,6 +173,7 @@ def scanner_worker(cfg: dict, buzzer: BuzzerService | None = None) -> None:
                         now = datetime.now()
                         rec = {
                             "DeviceID": device_id,
+                            "ScannerName": os.path.basename(dev_path),
                             "EntryNo": entry_no,
                             "Barcode": barcode_formatted,
                             "ScanDate": now.date().isoformat(),
@@ -207,6 +211,9 @@ def main():
 
     buzzer = BuzzerService(cfg, stop_event)
     buzzer.start()
+
+    dev_path = resolve_scanner_device(cfg)
+    log(cfg, f"Scanner device resolved to: {dev_path}")
 
     db_thread = threading.Thread(target=db_flush_worker, args=(cfg,), daemon=True)
     scan_thread = threading.Thread(target=scanner_worker, args=(cfg, buzzer), daemon=True)

@@ -10,7 +10,7 @@ sudo apt install -y \
     libpq-dev \
     python3-rpi.gpio
 
-
+sudo apt install -y unixodbc unixodbc-dev odbcinst tdsodbc freetds-bin
 # python3-dev  - this install header files and build tools for python
 # unixodbc-dev - Development files for UnixODBC
 
