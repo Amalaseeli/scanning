@@ -60,7 +60,9 @@ def resolve_user(cfg: dict, dev_path: str) -> str:
 
     base = os.path.basename(dev_path)
     for key, val in user_map.items():
-        if os.path.basename(key) == base:
+        key_base = os.path.basename(str(key))
+        # Match exact basename or suffix (handles entries like "event-kbd" against "usb-...-event-kbd").
+        if base == key_base or base.endswith(key_base):
             return val
 
     if cfg.get("user_id"):

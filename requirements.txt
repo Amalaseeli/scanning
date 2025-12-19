@@ -37,3 +37,9 @@ sudo reboot
 # ! ls -l /dev/input/by-id
 
 
+# sudo mkdir -p /usr/lib/arm-linux-gnueabihf/odbc
+# sudo ln -sf /usr/lib/aarch64-linux-gnu/odbc/libtdsodbc.so /usr/lib/arm-linux-gnueabihf/odbc/libtdsodbc.so
+# sudo ln -sf /usr/lib/aarch64-linux-gnu/odbc/libtdsS.so   /usr/lib/arm-linux-gnueabihf/odbc/libtdsS.so
+
+
+# ls -l /usr/lib/arm-linux-gnueabihf/odbc/libtdsodbc.so /usr/lib/arm-linux-gnueabihf/odbc/libtdsS.so

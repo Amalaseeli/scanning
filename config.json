@@ -13,7 +13,7 @@
 
     "Starting_entry_no": 1,
     
-    "db_save_interval" : 1800,    
+    "db_save_interval" : 2,    
    
     "log_file_path": "Scanning/scan_data.log" ,
     "state_file": "Scanning/scanner_state.json",
