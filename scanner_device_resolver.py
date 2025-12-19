@@ -50,13 +50,10 @@ def resolve_scanner_device(cfg: dict) -> str:
 def resolve_user(cfg: dict, dev_path: str) -> str:
     """
     Resolve user name based on config or device path:
-      1) If user_id is set, use it.
-      2) If scanner_user_map has an entry for the full path or basename, use that.
+      1) If scanner_user_map has an entry for the full path or basename, use that.
+      2) If user_id is set, use it.
       3) Otherwise return empty string.
     """
-    if cfg.get("user_id"):
-        return cfg["user_id"]
-
     user_map = cfg.get("scanner_user_map") or {}
     if dev_path in user_map:
         return user_map[dev_path]
@@ -65,5 +62,8 @@ def resolve_user(cfg: dict, dev_path: str) -> str:
     for key, val in user_map.items():
         if os.path.basename(key) == base:
             return val
+
+    if cfg.get("user_id"):
+        return cfg["user_id"]
 
     return ""
