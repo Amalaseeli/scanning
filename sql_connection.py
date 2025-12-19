@@ -5,6 +5,7 @@ import threading
 import time
 
 import pyodbc
+from db_utils import DatabaseConnector
 
 logger = logging.getLogger("sql_connection")
 
@@ -51,9 +52,12 @@ def log(cfg: dict, message: str) -> None:
 
 def connect_db(cfg: dict):
     connection_string = cfg_get(cfg, "sql_connection_string", "Sql_connection_credentials")
-    if not connection_string:
-        raise ValueError("Missing DB connection string: sql_connection_string/Sql_connection_credentials")
-    return pyodbc.connect(connection_string, autocommit=False)
+    if connection_string:
+        return pyodbc.connect(connection_string, autocommit=False)
+
+    # Fallback to db_cred.yaml
+    db = DatabaseConnector()
+    return db.create_connection()
 
 
 def _quote_table_name(table: str) -> str:
