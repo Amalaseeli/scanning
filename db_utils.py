@@ -1,73 +1,137 @@
+import os
 import yaml
-import pyodbc
 from pathlib import Path
+
+# Make pyodbc optional so the app can run on Raspberry Pi without ODBC.
+try:
+    import pyodbc  # type: ignore
+except Exception:  # pragma: no cover
+    pyodbc = None  # type: ignore
 
 
 class DatabaseConnector:
-    def __init__(self, config_filename: str = "db_cred.yaml"):
-        self.cfg_path = Path(__file__).resolve().parent / config_filename
-        self.config = self._load_db_config()
+    def __init__(self):
+        self.cfg = self._load_config()
 
-    def _load_db_config(self) -> dict:
-        config = {
+    def _load_config(self):
+        # Defaults
+        cfg = {
             "server": None,
-            "port": "",
+            "port": "1433",
             "database": None,
             "username": None,
             "password": None,
-            "driver": "FreeTDS",
+            "driver": "ODBC Driver 18 for SQL Server",
             "encrypt": "yes",
             "trust_server_certificate": "yes",
-            "trusted_connection": False,
+            "trusted_connection": None,
         }
-        if self.cfg_path.exists():
-            with open(self.cfg_path, "r", encoding="utf-8") as file:
-                data = yaml.safe_load(file) or {}
-                if not isinstance(data, dict):
-                    raise ValueError("Database configuration file is malformed.")
-                config.update({k: v for k, v in data.items() if v is not None})
-        return config
+
+        # Load YAML and override defaults
+        yml = Path(__file__).resolve().parent / "db_cred.yaml"
+        if yml.exists():
+            try:
+                with open(yml, "r", encoding="utf-8") as f:
+                    data = yaml.safe_load(f) or {}
+                for k in cfg:
+                    if k in data and data[k] is not None:
+                        v = data[k]
+                        cfg[k] = str(v) if not isinstance(v, str) else v
+            except Exception as e:
+                print(f"Warning: failed to read {yml}: {e}")
+
+        # Environment variables take highest precedence
+        env_map = {
+            "server": "DB_SERVER",
+            "port": "DB_PORT",
+            "database": "DB_NAME",
+            "username": "DB_USER",
+            "password": "DB_PASSWORD",
+            "driver": "DB_DRIVER",
+            "encrypt": "DB_ENCRYPT",
+            "trust_server_certificate": "DB_TRUST_SERVER_CERT",
+            "trusted_connection": "DB_TRUSTED_CONNECTION",
+        }
+        for k, envk in env_map.items():
+            val = os.getenv(envk)
+            if val is not None and str(val).strip() != "":
+                cfg[k] = val
+
+        return cfg
 
     def create_connection(self):
-        if pyodbc is None:
-            raise ImportError("pyodbc module is not installed.")
+        try:
+            if pyodbc is None:
+                print("pyodbc not available; skipping DB connection.")
+                return None
+            server = self.cfg["server"]
+            database = self.cfg["database"]
+            driver = self.cfg["driver"]
+            if not server or not database or not driver:
+                print("DB config missing: server/database/driver.")
+                return None
 
-        cfg = self.config
+            drv_lower = (driver or "").lower()
+            is_freetds = ("freetds" in drv_lower) or ("tdsodbc" in drv_lower)
 
-        if not cfg["server"] or not cfg["database"]:
-            raise ValueError("Missing required: server or database configuration.")
+            if is_freetds:
+                parts = [
+                    f"DRIVER={{{driver}}}",
+                    f"SERVER={server}",
+                    f"PORT={self.cfg.get('port','1433')}",
+                    f"DATABASE={database}",
+                ]
 
-        server = f"{cfg['server']}:{cfg['port']}" if cfg.get("port") else cfg["server"]
+                # FreeTDS typically uses SQL auth
+                user = self.cfg.get("username")
+                pwd = self.cfg.get("password")
+                if not user or not pwd:
+                    print("DB config missing username/password for FreeTDS.")
+                    return None
+                parts.append(f"UID={user}")
+                parts.append(f"PWD={pwd}")
 
-        driver_val = cfg.get("driver")
-        if isinstance(driver_val, dict):
-            driver_val = next(iter(driver_val.keys()), "")
-        driver_str = str(driver_val or "").strip()
-        if not driver_str:
-            raise ValueError("Missing driver in DB config.")
+                # Modern SQL Server versions work best with TDS 8.0
+                parts.append("TDS_Version=8.0")
+                parts.append("ClientCharset=UTF-8")
+                parts.append("Connection Timeout=5")
 
-        # If the driver is a full path to libtdsodbc.so, don't wrap in braces.
-        if "/" in driver_str or driver_str.endswith(".so"):
-            driver_part = f"DRIVER={driver_str}"
-        else:
-            driver_part = f"DRIVER={{{driver_str}}}"
+                conn_str = ";".join(parts) + ";"
+                return pyodbc.connect(conn_str)
+            else:
+                parts = [
+                    f"DRIVER={{{driver}}}",
+                    f"SERVER={server},{self.cfg.get('port','1433')}",
+                    f"DATABASE={database}",
+                ]
 
-        parts = [
-            driver_part,
-            f"SERVER={server}",
-            f"DATABASE={cfg['database']}",
-            f"ENCRYPT={cfg['encrypt']}",
-            f"TrustServerCertificate={cfg['trust_server_certificate']}",
-            "CONNECTION TIMEOUT=30",
-        ]
+                # Windows integrated auth if requested
+                if (self.cfg.get("trusted_connection") or "").lower() in ("1", "true", "yes"):
+                    parts.append("Trusted_Connection=yes")
+                else:
+                    user = self.cfg.get("username")
+                    pwd = self.cfg.get("password")
+                    if not user or not pwd:
+                        print("DB config missing username/password.")
+                        return None
+                    parts.append(f"UID={user}")
+                    parts.append(f"PWD={pwd}")
 
-        if cfg.get("trusted_connection"):
-            parts.append("Trusted_Connection=yes")
-        else:
-            if not cfg["username"] or not cfg["password"]:
-                raise ValueError("Missing required: username or password configuration.")
-            parts.append(f"UID={cfg['username']}")
-            parts.append(f"PWD={cfg['password']}")
+                enc = (self.cfg.get("encrypt") or "yes").lower()
+                parts.append(f"Encrypt={'yes' if enc in ('1','true','yes') else 'no'}")
+                if (self.cfg.get('trust_server_certificate') or 'yes').lower() in ('1','true','yes'):
+                    parts.append("TrustServerCertificate=yes")
 
-        connection_string = ";".join(parts) + ";"
-        return pyodbc.connect(connection_string)
+                parts.append("Connection Timeout=5")
+
+                conn_str = ";".join(parts) + ";"
+                return pyodbc.connect(conn_str)
+        except Exception as e:
+            print(f"DB connection error: {e}")
+            try:
+                # Help diagnose by printing installed ODBC drivers, if pyodbc exists
+                if pyodbc is not None:
+                    print(f"Available ODBC drivers: {pyodbc.drivers()}")
+            except Exception:
+                pass
+            return None
