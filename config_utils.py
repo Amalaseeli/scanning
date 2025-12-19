@@ -10,7 +10,6 @@ def load_config():
 
         required = [
             "Device_id",
-            "Sql_connection_credentials",
             "Starting_entry_no",
             "Table_name",
             "db_save_interval",
@@ -21,6 +20,9 @@ def load_config():
         for cred in required:
             if cred not in config_credentials:
                 raise ValueError(f"Missing required config: {cred}")
+
+        # Connection string is now optional (can be provided via db_cred.yaml)
+        # if neither is present, DB code will raise a clearer error later.
         
         
         return config_credentials
