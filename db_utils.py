@@ -38,8 +38,17 @@ class DatabaseConnector:
             raise ValueError("Missing required: server or database configuration.")
 
         server = f"{cfg['server']}:{cfg['port']}" if cfg.get("port") else cfg["server"]
+
+        driver_val = cfg.get("driver")
+        if isinstance(driver_val, dict):
+            # Handle YAML inline mapping like {ODBC Driver 18 for SQL Server}
+            driver_val = next(iter(driver_val.keys()), "")
+        driver_str = str(driver_val or "").strip()
+        if not driver_str:
+            raise ValueError("Missing driver in DB config.")
+
         parts = [
-            f"DRIVER={{{cfg['driver']}}}",
+            f"DRIVER={{{driver_str}}}",
             f"SERVER={server}",
             f"DATABASE={cfg['database']}",
             f"ENCRYPT={cfg['encrypt']}",
