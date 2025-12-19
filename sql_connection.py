@@ -53,10 +53,12 @@ def log(cfg: dict, message: str) -> None:
 def connect_db(cfg: dict):
     connection_string = cfg_get(cfg, "sql_connection_string", "Sql_connection_credentials")
     if connection_string:
+        log(cfg, "Connecting with config.json connection string.")
         return pyodbc.connect(connection_string, autocommit=False)
 
-    # Fallback to db_cred.yaml
+    # Default: use db_cred.yaml via DatabaseConnector
     db = DatabaseConnector()
+    log(cfg, "Connecting with db_cred.yaml settings.")
     return db.create_connection()
 
 
