@@ -11,8 +11,8 @@ import time
 import pathlib
 from datetime import date
 
-from sql_connection import append_spool, cfg_get, db_flush_worker, load_entry_no, log, save_entry_no, stop_event
-from buzzer import BuzzerService
+from sql_connection import append_spool, config_get, db_flush_worker, load_entry_no, log, save_entry_no, stop_event
+from speaker import SpeakerService
 from scanner_device_resolver import resolve_scanner_device, resolve_user
 
 base_dir = pathlib.Path(__file__).parent.resolve()
@@ -57,7 +57,6 @@ def format_parent_child_record(raw_barcode: str) -> str:
 
     parent_code = raw[:start.start()].rstrip("- ").strip()
 
-    # Children start from here
     child_code = raw[start.start():].lstrip("- ")
     child_code = child_code.replace("~", "|")
     child_code = re.sub(r"(\d)(?=[A-Za-z]{2,}\d+-\d+)", r"\1|", child_code, flags=re.IGNORECASE)
@@ -115,34 +114,30 @@ def split_parent_barcode(raw_barcode: str) -> str:
 def format_children_in_brackets(raw_barcode: str) -> str:
     return format_parent_child_record(raw_barcode)
 
-
 def split_parent_from_formatted(formatted_barcode: str) -> str:
     return split_parent_barcode(formatted_barcode)
-
 
 def parse_parent_fields(parent_barcode: str) -> dict:
     return fetch_barcode_segments(parent_barcode)
 
-
-
-def scanner_worker(cfg: dict, buzzer: BuzzerService | None = None) -> None:
-    dev_path = resolve_scanner_device(cfg)
-    device_id = cfg_get(cfg, "device_id", "Device_id")
-    config_user = cfg_get(cfg, "user_id", "User_id")
-    resolved_user = resolve_user(cfg, dev_path)
+def scanner_worker(config: dict, speaker: SpeakerService | None = None) -> None:
+    dev_path = resolve_scanner_device(config)
+    device_id = config_get(config, "device_id", "Device_id")
+    config_user = config_get(config, "user_id", "User_id")
+    resolved_user = resolve_user(config, dev_path)
     scanner_name = resolved_user or os.path.basename(dev_path)
     user_id = config_user or scanner_name
 
-    entry_no = load_entry_no(cfg)
+    entry_no = load_entry_no(config)
     buffer = ""
     shift = False
 
     while not stop_event.is_set():
         try:
             dev = InputDevice(dev_path)
-            log(cfg, f"Scanner opened: {dev_path}")
-            if buzzer is not None:
-                buzzer.enqueue("READY")
+            log(config, f"Scanner opened: {dev_path}")
+            if speaker is not None:
+                speaker.enqueue("device_ready")
 
             for event in dev.read_loop():
                 if stop_event.is_set():
@@ -185,12 +180,10 @@ def scanner_worker(cfg: dict, buzzer: BuzzerService | None = None) -> None:
                             **parent_fields,
                         }
 
-                        append_spool(cfg, rec)
-                        save_entry_no(cfg, entry_no + 1)
+                        append_spool(config, rec)
+                        save_entry_no(config, entry_no + 1)
 
-                        log(cfg, f"SCAN saved to spool: EntryNo={entry_no} Barcode={barcode_formatted}")
-                        if buzzer is not None:
-                            buzzer.enqueue("scan_ok")
+                        log(config, f"SCAN saved to spool: EntryNo={entry_no} Barcode={barcode_formatted}")
                         entry_no += 1
 
                     continue
@@ -201,25 +194,25 @@ def scanner_worker(cfg: dict, buzzer: BuzzerService | None = None) -> None:
                 shift = False
 
         except FileNotFoundError:
-            log(cfg, f"Scanner device not found: {dev_path}. Retrying in 2s.")
+            log(config, f"Scanner device not found: {dev_path}. Retrying in 2s.")
             time.sleep(2)
 
         except Exception as e:
-            log(cfg, f"Scanner error: {e}. Retrying in 2s.")
+            log(config, f"Scanner error: {e}. Retrying in 2s.")
             time.sleep(2)
 
 
 def main():
-    cfg = load_config()
+    config = load_config()
 
-    buzzer = BuzzerService(cfg, stop_event)
-    buzzer.start()
+    speaker = SpeakerService(config, stop_event)
+    speaker.start()
 
-    dev_path = resolve_scanner_device(cfg)
-    log(cfg, f"Scanner device resolved to: {dev_path}")
+    dev_path = resolve_scanner_device(config)
+    log(config, f"Scanner device resolved to: {dev_path}")
 
-    db_thread = threading.Thread(target=db_flush_worker, args=(cfg,), daemon=True)
-    scan_thread = threading.Thread(target=scanner_worker, args=(cfg, buzzer), daemon=True)
+    db_thread = threading.Thread(target=db_flush_worker, args=(config, speaker), daemon=True)
+    scan_thread = threading.Thread(target=scanner_worker, args=(config, speaker), daemon=True)
 
     db_thread.start()
     scan_thread.start()
@@ -229,12 +222,12 @@ def main():
             scan_thread.join(timeout=0.5)
     except KeyboardInterrupt:
         stop_event.set()
-        log(cfg, "Stopping...")
+        log(config, "Stopping...")
 
     stop_event.set()
     scan_thread.join(timeout=2)
     db_thread.join(timeout=5)
-    buzzer.cleanup()
+    speaker.cleanup()
     
 if __name__ == "__main__":
     main()
@@ -244,5 +237,4 @@ if __name__ == "__main__":
 
 
             
-
 

@@ -1,4 +1,5 @@
 keyboard
+simpleaudio
 
 sudo apt update
 sudo apt install -y \
@@ -43,3 +44,14 @@ sudo reboot
 
 
 # ls -l /usr/lib/arm-linux-gnueabihf/odbc/libtdsodbc.so /usr/lib/arm-linux-gnueabihf/odbc/libtdsS.so
+
+ #pip install simpleaudio
+
+
+ # pip install pyttsx3
+
+#for audio speaker
+# sudo apt-get update
+# sudo apt-get install -y espeak-ng libespeak-ng1 libespeak-ng-dev python3-pyaudio 
+# pip install pyttsx3
+

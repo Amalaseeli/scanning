@@ -2,19 +2,16 @@ import os
 import yaml
 from pathlib import Path
 
-# Make pyodbc optional so the app can run on Raspberry Pi without ODBC.
 try:
-    import pyodbc  # type: ignore
-except Exception:  # pragma: no cover
-    pyodbc = None  # type: ignore
-
-
+    import pyodbc  
+except Exception: 
+    pyodbc = None 
+    
 class DatabaseConnector:
     def __init__(self):
         self.cfg = self._load_config()
 
-    def _load_config(self):
-        # Defaults
+    def _load_config(self):       
         cfg = {
             "server": None,
             "port": "1433",
@@ -26,8 +23,7 @@ class DatabaseConnector:
             "trust_server_certificate": "yes",
             "trusted_connection": None,
         }
-
-        # Load YAML and override defaults
+      
         yml = Path(__file__).resolve().parent / "db_cred.yaml"
         if yml.exists():
             try:
@@ -40,7 +36,6 @@ class DatabaseConnector:
             except Exception as e:
                 print(f"Warning: failed to read {yml}: {e}")
 
-        # Environment variables take highest precedence
         env_map = {
             "server": "DB_SERVER",
             "port": "DB_PORT",
@@ -81,8 +76,7 @@ class DatabaseConnector:
                     f"PORT={self.cfg.get('port','1433')}",
                     f"DATABASE={database}",
                 ]
-
-                # FreeTDS typically uses SQL auth
+                
                 user = self.cfg.get("username")
                 pwd = self.cfg.get("password")
                 if not user or not pwd:
@@ -90,8 +84,6 @@ class DatabaseConnector:
                     return None
                 parts.append(f"UID={user}")
                 parts.append(f"PWD={pwd}")
-
-                # Modern SQL Server versions work best with TDS 8.0
                 parts.append("TDS_Version=8.0")
                 parts.append("ClientCharset=UTF-8")
                 parts.append("Connection Timeout=5")
@@ -104,8 +96,7 @@ class DatabaseConnector:
                     f"SERVER={server},{self.cfg.get('port','1433')}",
                     f"DATABASE={database}",
                 ]
-
-                # Windows integrated auth if requested
+                
                 if (self.cfg.get("trusted_connection") or "").lower() in ("1", "true", "yes"):
                     parts.append("Trusted_Connection=yes")
                 else:
@@ -128,8 +119,7 @@ class DatabaseConnector:
                 return pyodbc.connect(conn_str)
         except Exception as e:
             print(f"DB connection error: {e}")
-            try:
-                # Help diagnose by printing installed ODBC drivers, if pyodbc exists
+            try:                
                 if pyodbc is not None:
                     print(f"Available ODBC drivers: {pyodbc.drivers()}")
             except Exception:

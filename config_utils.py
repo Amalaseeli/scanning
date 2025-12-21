@@ -8,7 +8,6 @@ def load_config():
         with open (CONFIG_PATH, "r") as file:
             config_credentials = json.load(file)
 
-        # Device_id/Table_name/etc. are required; Scanner_input_device is now optional
         required = [
             "Device_id",
             "Starting_entry_no",
@@ -20,10 +19,6 @@ def load_config():
         for cred in required:
             if cred not in config_credentials:
                 raise ValueError(f"Missing required config: {cred}")
-
-        # Connection string is now optional (can be provided via db_cred.yaml)
-        # if neither is present, DB code will raise a clearer error later.
-        
         
         return config_credentials
     

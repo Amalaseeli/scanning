@@ -20,23 +20,11 @@
     "spool_offset_file": "Scanning/spool.offset",
 
     "Scanner_timeout_seconds": 300,
-    "BUZZER_ENABLED": true,
-    "buzzer_pin": 18, 
-    "buzzer_duration": 0.2,
-    "buzzer_repeat": 1,
-    "buzzer_pause": 0.05,
-
-
-    "beep_patterns": {
-        "READY":        [0.12],
-        "SCAN_OK":      [0.05],
-        "scan_ok":      [0.05],
-        "DB_FAIL":      [0.15, 0.15],
-        "EXCEPTION":    [0.05, 0.05, 0.05],
-        "SCANNER_LOST": [0.30],
-        "DB_RECOVER":   [0.05, 0.10, 0.05]
-    },
-    "beep_pause_sec": 0.06
+    "SPEAKER_ENABLED": true,
+    "voice_files": {
+        "device_ready": "sounds/device_ready.wav",
+        "network_lost": "sounds/network_lost.wav"
+    }
 
 
 }

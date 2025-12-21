@@ -17,47 +17,47 @@ CREATE TABLE {table_name} (
     DeviceID NVARCHAR(50) NOT NULL,
     ScannerName NVARCHAR(255) NULL,
     EntryNo INT NOT NULL,
-    Barcode NVARCHAR(255) NOT NULL,
+    Barcode NVARCHAR(MAX) NOT NULL,
     ScanDate DATE NOT NULL,
     ScanTime TIME(0) NOT NULL,
     UserID NVARCHAR(50) NULL,
 
-    Stowage NVARCHAR(50) NULL,
+    Stowage NVARCHAR(255) NULL,
     FlightNo NVARCHAR(MAX) NULL,
     OrderDate DATE NULL,
-    DACS_CLASS NVARCHAR(50) NULL,
-    Leg NVARCHAR(50) NULL,
-    Gally NVARCHAR(50) NULL,
-    BlockNo NVARCHAR(50) NULL,
-    ContainerCode NVARCHAR(50) NULL,
-    DES NVARCHAR(50) NULL,
-    DACS_ACType NVARCHAR(50) NULL,
+    DACS_CLASS NVARCHAR(255) NULL,
+    Leg NVARCHAR(255) NULL,
+    Gally NVARCHAR(255) NULL,
+    BlockNo NVARCHAR(255) NULL,
+    ContainerCode NVARCHAR(255) NULL,
+    DES NVARCHAR(255) NULL,
+    DACS_ACType NVARCHAR(255) NULL,
 
     CONSTRAINT PK_Do_Co_Scanning_Data PRIMARY KEY CLUSTERED (DeviceID, EntryNo)
 );
 """.strip()
 
 
-def cfg_get(cfg: dict, *keys: str, default=None):
+def config_get(config: dict, *keys: str, default=None):
     for key in keys:
-        if key in cfg and cfg[key] is not None:
-            return cfg[key]
+        if key in config and config[key] is not None:
+            return config[key]
     return default
 
 
-def log(cfg: dict, message: str) -> None:
+def log(config: dict, message: str) -> None:
     logger.info(message)
 
 
-def connect_db(cfg: dict):
-    connection_string = cfg_get(cfg, "sql_connection_string", "Sql_connection_credentials")
+def connect_db(config: dict):
+    connection_string = config_get(config, "sql_connection_string", "Sql_connection_credentials")
     if connection_string:
-        log(cfg, "Connecting with config.json connection string.")
+        log(config, "Connecting with config.json connection string.")
         return pyodbc.connect(connection_string, autocommit=False)
 
     # Default: use db_cred.yaml via DatabaseConnector
     db = DatabaseConnector()
-    log(cfg, "Connecting with db_cred.yaml settings.")
+    log(config, "Connecting with db_cred.yaml settings.")
     return db.create_connection()
 
 
@@ -118,9 +118,9 @@ def ensure_table_exists(conn, table: str) -> bool:
             pass
 
 
-def load_entry_no(cfg: dict) -> int:
-    state_file = cfg_get(cfg, "state_file")
-    start_entry_no = int(cfg_get(cfg, "Starting_entry_no", "starting_entry_no", default=1))
+def load_entry_no(config: dict) -> int:
+    state_file = config_get(config, "state_file")
+    start_entry_no = int(config_get(config, "Starting_entry_no", "starting_entry_no", default=1))
     if not state_file:
         return start_entry_no
 
@@ -135,8 +135,8 @@ def load_entry_no(cfg: dict) -> int:
         return start_entry_no
 
 
-def save_entry_no(cfg: dict, next_entry_no: int) -> None:
-    state_file = cfg_get(cfg, "state_file")
+def save_entry_no(config: dict, next_entry_no: int) -> None:
+    state_file = config_get(config, "state_file")
     if not state_file:
         return
 
@@ -147,8 +147,8 @@ def save_entry_no(cfg: dict, next_entry_no: int) -> None:
     os.replace(tmp, state_file)
 
 
-def load_spool_offset(cfg: dict) -> int:
-    spool_offset_file = cfg_get(cfg, "spool_offset_file")
+def load_spool_offset(config: dict) -> int:
+    spool_offset_file = config_get(config, "spool_offset_file")
     if not spool_offset_file:
         return 0
     try:
@@ -161,8 +161,8 @@ def load_spool_offset(cfg: dict) -> int:
         return 0
 
 
-def save_spool_offset(cfg: dict, offset: int) -> None:
-    spool_offset_file = cfg_get(cfg, "spool_offset_file")
+def save_spool_offset(config: dict, offset: int) -> None:
+    spool_offset_file = config_get(config, "spool_offset_file")
     if not spool_offset_file:
         return
 
@@ -173,8 +173,8 @@ def save_spool_offset(cfg: dict, offset: int) -> None:
     os.replace(tmp, spool_offset_file)
 
 
-def append_spool(cfg: dict, record: dict) -> None:
-    spool_file = cfg_get(cfg, "spool_file")
+def append_spool(config: dict, record: dict) -> None:
+    spool_file = config_get(config, "spool_file")
     if not spool_file:
         return
 
@@ -186,15 +186,15 @@ def append_spool(cfg: dict, record: dict) -> None:
         os.fsync(f.fileno())
 
 
-def db_flush_worker(cfg: dict) -> None:
-    table = cfg_get(cfg, "table_name", "Table_name")
+def db_flush_worker(config: dict, speaker=None) -> None:
+    table = config_get(config, "table_name", "Table_name")
     if not table:
         raise ValueError("Missing table name: table_name/Table_name")
     quoted_table = _quote_table_name(table)
 
-    flush_interval = float(cfg_get(cfg, "db_flush_interval_sec", "db_save_interval", default=1.0))
+    flush_interval = float(config_get(config, "db_flush_interval_sec", "db_save_interval", default=1.0))
     conn = None
-    offset = load_spool_offset(cfg)
+    offset = load_spool_offset(config)
 
     insert_sql = f"""
         INSERT INTO {quoted_table}
@@ -203,24 +203,26 @@ def db_flush_worker(cfg: dict) -> None:
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """
 
+    network_alerted = False
+
     while not stop_event.is_set():
         batch = []
         new_offset = offset
 
         try:
             if conn is None:
-                conn = connect_db(cfg)
+                conn = connect_db(config)
                 try:
                     created = ensure_table_exists(conn, table)
                     if created:
-                        log(cfg, f"Created missing table: {table}")
+                        log(config, f"Created missing table: {table}")
                 except Exception as e:
-                    log(cfg, f"Table check/create failed for {table}: {e}")
-                log(cfg, "DB connected.")
+                    log(config, f"Table check/create failed for {table}: {e}")
+                log(config, "DB connected.")
 
             time.sleep(flush_interval)
 
-            spool_path = cfg_get(cfg, "spool_file")
+            spool_path = config_get(config, "spool_file")
             if not spool_path or not os.path.exists(spool_path):
                 continue
 
@@ -243,7 +245,7 @@ def db_flush_worker(cfg: dict) -> None:
 
             if not batch:
                 offset = new_offset
-                save_spool_offset(cfg, offset)
+                save_spool_offset(config, offset)
                 continue
 
             cur = conn.cursor()
@@ -277,11 +279,12 @@ def db_flush_worker(cfg: dict) -> None:
                     pass
 
             offset = new_offset
-            save_spool_offset(cfg, offset)
-            log(cfg, f"DB flush: inserted {len(batch)} rows. offset={offset}")
+            save_spool_offset(config, offset)
+            log(config, f"DB flush: inserted {len(batch)} rows. offset={offset}")
+            network_alerted = False
 
         except pyodbc.IntegrityError as e:
-            log(cfg, f"DB integrity error: {e}. Trying row-by-row.")
+            log(config, f"DB integrity error: {e}. Trying row-by-row.")
             try:
                 conn.rollback()
             except Exception:
@@ -324,10 +327,10 @@ def db_flush_worker(cfg: dict) -> None:
                         pass
 
                 offset = new_offset
-                save_spool_offset(cfg, offset)
-                log(cfg, f"DB flush row-by-row: inserted {ok}/{len(batch)}. offset={offset}")
+                save_spool_offset(config, offset)
+                log(config, f"DB flush row-by-row: inserted {ok}/{len(batch)}. offset={offset}")
             except Exception as e2:
-                log(cfg, f"DB row-by-row failed: {e2}")
+                log(config, f"DB row-by-row failed: {e2}")
                 try:
                     conn.rollback()
                 except Exception:
@@ -335,7 +338,13 @@ def db_flush_worker(cfg: dict) -> None:
                 time.sleep(5)
 
         except pyodbc.Error as e:
-            log(cfg, f"DB error: {e}. Reconnecting in 5s.")
+            log(config, f"DB error: {e}. Reconnecting in 5s.")
+            if speaker is not None and not network_alerted:
+                try:
+                    speaker.enqueue("network_lost")
+                except Exception:
+                    pass
+                network_alerted = True
             try:
                 conn.rollback()
                 conn.close()
@@ -345,7 +354,7 @@ def db_flush_worker(cfg: dict) -> None:
             time.sleep(5)
 
         except Exception as e:
-            log(cfg, f"DB worker error: {e}")
+            log(config, f"DB worker error: {e}")
             time.sleep(5)
 
     if conn is not None:
