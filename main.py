@@ -9,6 +9,7 @@ from config_utils import load_config
 import re
 import time  
 import pathlib
+import socket
 from datetime import date
 
 from sql_connection import append_spool, config_get, db_flush_worker, load_entry_no, log, save_entry_no, stop_event
@@ -120,6 +121,40 @@ def split_parent_from_formatted(formatted_barcode: str) -> str:
 def parse_parent_fields(parent_barcode: str) -> dict:
     return fetch_barcode_segments(parent_barcode)
 
+def _is_network_up(host: str = "8.8.8.8", timeout: float = 3.0) -> bool:
+    """Basic reachability check to detect network loss."""
+    try:
+        socket.create_connection((host, 53), timeout=timeout).close()
+        return True
+    except OSError:
+        return False
+
+
+def network_monitor_worker(config: dict, speaker: SpeakerService | None = None) -> None:
+    host = config_get(config, "network_check_host", default="8.8.8.8")
+    interval = float(config_get(config, "network_check_interval_sec", default=5.0))
+    threshold = int(config_get(config, "network_check_fail_threshold", default=2))
+    fail_count = 0
+    alerted = False
+
+    while not stop_event.is_set():
+        ok = _is_network_up(host)
+        if ok:
+            fail_count = 0
+            alerted = False
+        else:
+            fail_count += 1
+            if fail_count >= threshold and not alerted:
+                log(config, f"Network check failed to {host}; triggering network_lost alert.")
+                try:
+                    if speaker is not None:
+                        speaker.enqueue("network_lost")
+                except Exception as ex:
+                    log(config, f"Failed to enqueue network_lost (network monitor): {ex}")
+                alerted = True
+        time.sleep(interval)
+
+
 def scanner_worker(config: dict, speaker: SpeakerService | None = None) -> None:
     dev_path = resolve_scanner_device(config)
     device_id = config_get(config, "device_id", "Device_id")
@@ -213,9 +248,11 @@ def main():
 
     db_thread = threading.Thread(target=db_flush_worker, args=(config, speaker), daemon=True)
     scan_thread = threading.Thread(target=scanner_worker, args=(config, speaker), daemon=True)
+    net_thread = threading.Thread(target=network_monitor_worker, args=(config, speaker), daemon=True)
 
     db_thread.start()
     scan_thread.start()
+    net_thread.start()
 
     try:
         while scan_thread.is_alive():
@@ -227,6 +264,7 @@ def main():
     stop_event.set()
     scan_thread.join(timeout=2)
     db_thread.join(timeout=5)
+    net_thread.join(timeout=2)
     speaker.cleanup()
     
 if __name__ == "__main__":
@@ -237,4 +275,3 @@ if __name__ == "__main__":
 
 
             
-
