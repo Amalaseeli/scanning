@@ -54,8 +54,7 @@ def connect_db(config: dict):
     if connection_string:
         log(config, "Connecting with config.json connection string.")
         return pyodbc.connect(connection_string, autocommit=False)
-
-    # Default: use db_cred.yaml via DatabaseConnector
+    
     db = DatabaseConnector()
     log(config, "Connecting with db_cred.yaml settings.")
     return db.create_connection()
@@ -78,18 +77,18 @@ def _quote_table_name(table: str) -> str:
 def ensure_table_exists(conn, table: str) -> bool:
     """
     Ensure the target table exists. Returns True if created, False if already existed.
-    Intended for SQL Server (via FreeTDS / ODBC).
+   .
     """
     quoted_table = _quote_table_name(table)
 
     cur = conn.cursor()
     try:
-        # SQL Server fast-path
+      
         try:
             cur.execute("SELECT OBJECT_ID(?, 'U')", table)
             row = cur.fetchone()
             if row and row[0] is not None:
-                # Ensure ScannerName column exists; add if missing.
+               
                 try:
                     cur.execute(
                         "SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = ? AND COLUMN_NAME = 'ScannerName'",
@@ -103,7 +102,7 @@ def ensure_table_exists(conn, table: str) -> bool:
 
                 return False
         except Exception:
-            # Fallback: probe table
+            
             cur.execute(f"SELECT 1 FROM {quoted_table} WHERE 1=0")
             return False
 
@@ -263,10 +262,11 @@ def db_flush_worker(config: dict, speaker=None) -> None:
                     except pyodbc.Error as e:
                         log(config, f"DB heartbeat failed: {e}. Reconnecting in 5s.")
                         if speaker is not None and not network_alerted:
+                            log(config, "Enqueueing network_lost (heartbeat failed).")
                             try:
                                 speaker.enqueue("network_lost")
                             except Exception:
-                                pass
+                                log(config, "Failed to enqueue network_lost (heartbeat): %s", e)
                             network_alerted = True
                         try:
                             conn.close()
@@ -369,10 +369,11 @@ def db_flush_worker(config: dict, speaker=None) -> None:
         except pyodbc.Error as e:
             log(config, f"DB error: {e}. Reconnecting in 5s.")
             if speaker is not None and not network_alerted:
+                log(config, "Enqueueing network_lost (DB error).")
                 try:
                     speaker.enqueue("network_lost")
-                except Exception:
-                    pass
+                except Exception as ex:
+                    log(config, f"Failed to enqueue network_lost (DB error): {ex}")
                 network_alerted = True
             try:
                 conn.rollback()
