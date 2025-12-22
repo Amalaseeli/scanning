@@ -79,6 +79,8 @@ def ensure_table_exists(conn, table: str) -> bool:
     Ensure the target table exists. Returns True if created, False if already existed.
    .
     """
+    if conn is None:
+        raise ValueError("No DB connection")
     quoted_table = _quote_table_name(table)
 
     cur = conn.cursor()
@@ -213,6 +215,17 @@ def db_flush_worker(config: dict, speaker=None) -> None:
         try:
             if conn is None:
                 conn = connect_db(config)
+                if conn is None:
+                    log(config, "DB connect returned None; retry in 5s.")
+                    if speaker is not None and not network_alerted:
+                        log(config, "Enqueueing network_lost (connect returned None).")
+                        try:
+                            speaker.enqueue("network_lost")
+                        except Exception as ex:
+                            log(config, f"Failed to enqueue network_lost (connect): {ex}")
+                        network_alerted = True
+                    time.sleep(5)
+                    continue
                 try:
                     created = ensure_table_exists(conn, table)
                     if created:
@@ -220,6 +233,7 @@ def db_flush_worker(config: dict, speaker=None) -> None:
                 except Exception as e:
                     log(config, f"Table check/create failed for {table}: {e}")
                 log(config, "DB connected.")
+                network_alerted = False
 
             time.sleep(flush_interval)
 
