@@ -193,8 +193,10 @@ def db_flush_worker(config: dict, speaker=None) -> None:
     quoted_table = _quote_table_name(table)
 
     flush_interval = float(config_get(config, "db_flush_interval_sec", "db_save_interval", default=1.0))
+    heartbeat_interval = float(config_get(config, "db_heartbeat_interval_sec", default=10.0))
     conn = None
     offset = load_spool_offset(config)
+    last_heartbeat = 0.0
 
     insert_sql = f"""
         INSERT INTO {quoted_table}
@@ -246,6 +248,33 @@ def db_flush_worker(config: dict, speaker=None) -> None:
             if not batch:
                 offset = new_offset
                 save_spool_offset(config, offset)
+                if conn is not None and (time.time() - last_heartbeat) >= heartbeat_interval:
+                    try:
+                        cur = conn.cursor()
+                        try:
+                            cur.execute("SELECT 1")
+                            cur.fetchone()
+                        finally:
+                            try:
+                                cur.close()
+                            except Exception:
+                                pass
+                        network_alerted = False
+                    except pyodbc.Error as e:
+                        log(config, f"DB heartbeat failed: {e}. Reconnecting in 5s.")
+                        if speaker is not None and not network_alerted:
+                            try:
+                                speaker.enqueue("network_lost")
+                            except Exception:
+                                pass
+                            network_alerted = True
+                        try:
+                            conn.close()
+                        except Exception:
+                            pass
+                        conn = None
+                        time.sleep(5)
+                    last_heartbeat = time.time()
                 continue
 
             cur = conn.cursor()
