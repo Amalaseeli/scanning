@@ -19,9 +19,10 @@ class ScannerUI:
         self.count = 0
 
         # Colors
-        bg = "#0f172a"          # page background
+        bg = "#0f172a"         
         panel = "#111827"
-        btn_bg = "#2563eb"
+        start_btn_bg = "#068d31"
+        stop_btn_bg = "#b91c1c"
         btn_bg_disabled = "#1e3a8a"
         btn_fg = "#ffffff"
 
@@ -34,8 +35,19 @@ class ScannerUI:
         style.configure("TFrame", background=panel)
         style.configure("TLabel", background=panel, foreground="#e5e7eb")
         style.configure(
-            "Primary.TButton",
-            background=btn_bg,
+            "Start.TButton",
+            start_background=start_btn_bg,
+
+            foreground=btn_fg,
+            padding=10,
+            font=("Segoe UI Semibold", 11),
+            borderwidth=0,
+            focusthickness=0,
+        )
+        style.configure(
+            "Stop.TButton",
+            start_background=stop_btn_bg,
+
             foreground=btn_fg,
             padding=10,
             font=("Segoe UI Semibold", 11),
@@ -43,7 +55,12 @@ class ScannerUI:
             focusthickness=0,
         )
         style.map(
-            "Primary.TButton",
+            "Start.TButton",
+            background=[("disabled", btn_bg_disabled), ("active", "#1d4ed8")],
+            foreground=[("disabled", "#cbd5e1")],
+        )
+        style.map(
+            "Stop.TButton",
             background=[("disabled", btn_bg_disabled), ("active", "#1d4ed8")],
             foreground=[("disabled", "#cbd5e1")],
         )
@@ -66,10 +83,10 @@ class ScannerUI:
         btns = ttk.Frame(container, style="TFrame")
         btns.pack()
 
-        self.start_button = ttk.Button(btns, text="Start", style="Primary.TButton", command=self.start_scanning)
+        self.start_button = ttk.Button(btns, text="Start", style="Start.TButton", command=self.start_scanning)
         self.start_button.pack(side=tk.LEFT, padx=8)
 
-        self.stop_button = ttk.Button(btns, text="Stop", style="Primary.TButton",
+        self.stop_button = ttk.Button(btns, text="Stop", style="Stop.TButton",
                                       command=self.stop_scanning, state=tk.DISABLED)
         self.stop_button.pack(side=tk.LEFT, padx=8)
 
@@ -129,7 +146,7 @@ class ScannerUI:
 
 def main():
     root = tk.Tk()
-    root.geometry(f"{screen_width}x{screen_height}")
+    root.geometry("420x260")
     app = ScannerUI(root)
     root.protocol("WM_DELETE_WINDOW", app.on_close)
     root.mainloop()

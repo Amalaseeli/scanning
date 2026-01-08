@@ -14,6 +14,7 @@ sudo apt install -y \
 
 pip install evdev
 pip install pyyaml
+pip install pyautogui
 
 
 sudo apt install -y unixodbc unixodbc-dev odbcinst tdsodbc freetds-bin
