@@ -3,6 +3,9 @@ from tkinter import messagebox
 from tkinter import ttk
 import threading
 import time
+import sys, pathlib
+sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
+
 from config_utils import load_config
 from main import scanner_worker, network_monitor_worker
 from speaker import SpeakerService
