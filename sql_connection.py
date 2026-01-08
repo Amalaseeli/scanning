@@ -188,6 +188,7 @@ def append_spool(config: dict, record: dict) -> None:
 
 
 def db_flush_worker(config: dict, speaker=None) -> None:
+    Summary_post_entry = int(config.get(config, "Summary_post_entry", default=0)) == 1
     table = config_get(config, "table_name", "Table_name")
     if not table:
         raise ValueError("Missing table name: table_name/Table_name")
@@ -199,14 +200,34 @@ def db_flush_worker(config: dict, speaker=None) -> None:
     offset = load_spool_offset(config)
     last_heartbeat = 0.0
 
-    insert_sql = f"""
+    if Summary_post_entry:
+        insert_sql = f"""
         INSERT INTO {quoted_table}
-        (DeviceID, ScannerName, EntryNo, Barcode, ScanDate, ScanTime, UserID,
-         Stowage, FlightNo, OrderDate, DACS_CLASS, Leg, Gally, BlockNo, ContainerCode, DES, DACS_ACType)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """
+        (DeviceID, ScannerName, EntryNo, Barcode, ScanDate, ScanTime, UserID)
+        VALUES (?, ?, ?, ?, ?, ?, ?)"""
+    else:
+        insert_sql = f"""
+            INSERT INTO {quoted_table}
+            (DeviceID, ScannerName, EntryNo, Barcode, ScanDate, ScanTime, UserID,
+            Stowage, FlightNo, OrderDate, DACS_CLASS, Leg, Gally, BlockNo, ContainerCode, DES, DACS_ACType)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """
 
     network_alerted = False
+
+    def _params(rec, Summary_post_entry):
+        if Summary_post_entry:
+            return (
+                rec["DeviceID"], rec.get("ScannerName"), rec["EntryNo"], rec["Barcode"],
+                rec["ScanDate"], rec["ScanTime"], rec.get("UserID"),
+            )
+        return (
+            rec["DeviceID"], rec.get("ScannerName"), rec["EntryNo"], rec["Barcode"],
+            rec["ScanDate"], rec["ScanTime"], rec.get("UserID"),
+            rec.get("Stowage"), rec.get("FlightNo"), rec.get("OrderDate"),
+            rec.get("DACS_CLASS"), rec.get("Leg"), rec.get("Gally"),
+            rec.get("BlockNo"), rec.get("ContainerCode"), rec.get("DES"), rec.get("DACS_ACType"),
+        ) 
 
     while not stop_event.is_set():
         batch = []
@@ -296,23 +317,7 @@ def db_flush_worker(config: dict, speaker=None) -> None:
                 for rec in batch:
                     cur.execute(
                         insert_sql,
-                        rec["DeviceID"],
-                        rec.get("ScannerName"),
-                        rec["EntryNo"],
-                        rec["Barcode"],
-                        rec["ScanDate"],
-                        rec["ScanTime"],
-                        rec.get("UserID"),
-                        rec.get("Stowage"),
-                        rec.get("FlightNo"),
-                        rec.get("OrderDate"),
-                        rec.get("DACS_CLASS"),
-                        rec.get("Leg"),
-                        rec.get("Gally"),
-                        rec.get("BlockNo"),
-                        rec.get("ContainerCode"),
-                        rec.get("DES"),
-                        rec.get("DACS_ACType"),
+                        *(_params(rec, Summary_post_entry)) 
                     )
                 conn.commit()
             finally:
