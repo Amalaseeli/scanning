@@ -22,7 +22,9 @@ class ScannerUI:
         bg = "#0f172a"         
         panel = "#111827"
         start_btn_bg = "#068d31"
+        btn_green_active = "#15803d"
         stop_btn_bg = "#b91c1c"
+        btn_red_active = "#b91c1c"
         btn_bg_disabled = "#1e3a8a"
         btn_fg = "#ffffff"
 
@@ -56,12 +58,12 @@ class ScannerUI:
         )
         style.map(
             "Start.TButton",
-            background=[("disabled", btn_bg_disabled), ("active", "#1d4ed8")],
+            background=[("disabled", btn_bg_disabled), ("active", btn_green_active)],
             foreground=[("disabled", "#cbd5e1")],
         )
         style.map(
             "Stop.TButton",
-            background=[("disabled", btn_bg_disabled), ("active", "#1d4ed8")],
+            background=[("disabled", btn_bg_disabled), ("active", btn_red_active)],
             foreground=[("disabled", "#cbd5e1")],
         )
 
