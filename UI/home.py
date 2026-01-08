@@ -8,6 +8,9 @@ from config_utils import load_config
 from main import scanner_worker, network_monitor_worker
 from speaker import SpeakerService
 from sql_connection import db_flush_worker, stop_event
+import pyautogui
+
+screen_width, screen_height = pyautogui.size()
 
 class ScannerUI:
     def __init__(self, root):
@@ -126,7 +129,7 @@ class ScannerUI:
 
 def main():
     root = tk.Tk()
-    root.geometry("420x260")
+    root.geometry(f"{screen_width}x{screen_height}")
     app = ScannerUI(root)
     root.protocol("WM_DELETE_WINDOW", app.on_close)
     root.mainloop()
