@@ -215,7 +215,7 @@ def db_flush_worker(config: dict, speaker=None) -> None:
 
     network_alerted = False
 
-    def _params(rec, Summary_post_entry):
+    def _params(rec):
         if Summary_post_entry:
             return (
                 rec["DeviceID"], rec.get("ScannerName"), rec["EntryNo"], rec["Barcode"],
@@ -317,7 +317,7 @@ def db_flush_worker(config: dict, speaker=None) -> None:
                 for rec in batch:
                     cur.execute(
                         insert_sql,
-                        *(_params(rec, Summary_post_entry)) 
+                        *(_params(rec)) 
                     )
                 conn.commit()
             finally:
@@ -344,26 +344,7 @@ def db_flush_worker(config: dict, speaker=None) -> None:
                     ok = 0
                     for rec in batch:
                         try:
-                            cur.execute(
-                                insert_sql,
-                                rec["DeviceID"],
-                                rec.get("ScannerName"),
-                                rec["EntryNo"],
-                                rec["Barcode"],
-                                rec["ScanDate"],
-                                rec["ScanTime"],
-                                rec.get("UserID"),
-                                rec.get("Stowage"),
-                                rec.get("FlightNo"),
-                                rec.get("OrderDate"),
-                                rec.get("DACS_CLASS"),
-                                rec.get("Leg"),
-                                rec.get("Gally"),
-                                rec.get("BlockNo"),
-                                rec.get("ContainerCode"),
-                                rec.get("DES"),
-                                rec.get("DACS_ACType"),
-                            )
+                            cur.execute(insert_sql, *_params(rec))
                             ok += 1
                         except pyodbc.IntegrityError:
                             continue
