@@ -5,10 +5,10 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-User=pi
-WorkingDirectory=/home/pi/DOCO/Scanning
+User=visualai
+WorkingDirectory=/home/visualai/Documents/Barcode_scanning/scanning
 Environment=PYTHONUNBUFFERED=1
-ExecStart=/home/pi/DOCO/Scanning/virtualenv/bin/python /home/pi/DOCO/Scanning/main.py
+ExecStart=/home/visualai/Documents/Barcode_scanning/virtualenv/bin/python /home/visualai/Documents/Barcode_scanning/scanning/main.py
 Restart=on-failure
 RestartSec=3
 TimeoutStopSec=15

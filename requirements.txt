@@ -11,6 +11,11 @@ sudo apt install -y \
     libpq-dev \
     python3-rpi.gpio
 
+
+pip install evdev
+pip install pyyaml
+
+
 sudo apt install -y unixodbc unixodbc-dev odbcinst tdsodbc freetds-bin
 # python3-dev  - this install header files and build tools for python
 # unixodbc-dev - Development files for UnixODBC
@@ -32,6 +37,12 @@ pip3 install pyodbc
 
 whoami
 sudo usermod -a -G input pi
+
+
+sudo usermod -aG input,audio visualai
+sudo reboot
+
+
 sudo reboot
 
 # ! Scanner input check
@@ -49,6 +60,8 @@ sudo reboot
 
 
  # pip install pyttsx3
+sudo usermod -aG input,audio visualai
+sudo reboot
 
 #for audio speaker
 # sudo apt-get update
@@ -59,3 +72,34 @@ sudo reboot
 sudo apt-get install -y libasound2 libasound2-dev build-essential python3-dev
 pip install --no-cache-dir simpleaudio
 
+
+sudo cp home/visualai/Documents/Barcode-Scanning/scanning/scanning.service /etc/systemd/system/scanning.service
+
+home/visualai/Documents/Barcode_Scanning/scanning
+sudo systemctl daemon-reload
+sudo systemctl enable scanning.service
+
+journalctl -u scanning.service -f
+sudo systemctl start scanning.service
+
+
+sudo systemctl daemon-reload
+sudo systemctl restart scanning.service
+
+
+# confirm the user exists
+id visualai
+
+# strip CRLF from the unit
+sudo sed -i 's/\r$//' /etc/systemd/system/scanning.service
+
+# reload and restart
+sudo systemctl daemon-reload
+sudo systemctl restart scanning.service
+sudo systemctl status scanning.service
+
+# delete the unit file
+sudo rm /etc/systemd/system/scanning.service
+
+# reload systemd so it forgets the removed unit
+sudo systemctl daemon-reload

@@ -155,7 +155,7 @@ def network_monitor_worker(config: dict, speaker: SpeakerService | None = None) 
         time.sleep(interval)
 
 
-def scanner_worker(config: dict, speaker: SpeakerService | None = None) -> None:
+def scanner_worker(config: dict, speaker: SpeakerService | None = None, on_scan = None) -> None:
     dev_path = resolve_scanner_device(config)
     device_id = config_get(config, "device_id", "Device_id")
     config_user = config_get(config, "user_id", "User_id")
@@ -219,6 +219,12 @@ def scanner_worker(config: dict, speaker: SpeakerService | None = None) -> None:
                         save_entry_no(config, entry_no + 1)
 
                         log(config, f"SCAN saved to spool: EntryNo={entry_no} Barcode={barcode_formatted}")
+
+                        if on_scan:
+                            try:
+                                on_scan(entry_no)
+                            except Exception as ex:
+                                log(config, f"on_scan callback failed: {ex}")
                         entry_no += 1
 
                     continue
