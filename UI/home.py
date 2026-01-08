@@ -22,10 +22,12 @@ class ScannerUI:
         bg = "#0f172a"         
         panel = "#111827"
         start_btn_bg = "#068d31"
-        btn_green_active = "#15803d"
+        start_btn_active = "#15803d"
+        start_btn_disabled = "#0b4f1f"
+
         stop_btn_bg = "#b91c1c"
-        btn_red_active = "#b91c1c"
-        btn_bg_disabled = "#1e3a8a"
+        stop_btn_active = "#b91c1c"
+        stop_btn_disabled = "#7f1d1d"
         btn_fg = "#ffffff"
 
         root.configure(bg=bg)
@@ -38,7 +40,7 @@ class ScannerUI:
         style.configure("TLabel", background=panel, foreground="#e5e7eb")
         style.configure(
             "Start.TButton",
-            start_background=start_btn_bg,
+            background=start_btn_bg,
 
             foreground=btn_fg,
             padding=10,
@@ -48,7 +50,7 @@ class ScannerUI:
         )
         style.configure(
             "Stop.TButton",
-            start_background=stop_btn_bg,
+            background=stop_btn_bg,
 
             foreground=btn_fg,
             padding=10,
@@ -58,12 +60,12 @@ class ScannerUI:
         )
         style.map(
             "Start.TButton",
-            background=[("disabled", btn_bg_disabled), ("active", btn_green_active)],
+            background=[("disabled", start_btn_disabled), ("pressed", start_btn_active), ("active", start_btn_active)],
             foreground=[("disabled", "#cbd5e1")],
         )
         style.map(
             "Stop.TButton",
-            background=[("disabled", btn_bg_disabled), ("active", btn_red_active)],
+            background=[("disabled", stop_btn_disabled), ("pressed", stop_btn_active), ("active", stop_btn_active)],
             foreground=[("disabled", "#cbd5e1")],
         )
 
