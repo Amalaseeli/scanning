@@ -188,7 +188,7 @@ def append_spool(config: dict, record: dict) -> None:
 
 
 def db_flush_worker(config: dict, speaker=None) -> None:
-    Summary_post_entry = int(config.get(config, "Summary_post_entry", default=0)) == 1
+    Summary_post_entry = int(config_get(config, "Summary_post_entry", default=0)) == 1
     table = config_get(config, "table_name", "Table_name")
     if not table:
         raise ValueError("Missing table name: table_name/Table_name")
