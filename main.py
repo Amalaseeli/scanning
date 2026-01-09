@@ -222,7 +222,11 @@ def scanner_worker(config: dict, speaker: SpeakerService | None = None, on_scan 
 
                         if on_scan:
                             try:
-                                on_scan(entry_no)
+                                
+                                try:
+                                    on_scan(entry_no, barcode_formatted)
+                                except TypeError:
+                                    on_scan(entry_no)
                             except Exception as ex:
                                 log(config, f"on_scan callback failed: {ex}")
                         entry_no += 1

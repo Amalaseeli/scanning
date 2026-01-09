@@ -17,6 +17,7 @@ class ScannerUI:
         self.root = root
         self.running = False
         self.count = 0
+        self.last_barcode = tk.StringVar(value="Last Barcode: -")
 
         # Colors
         bg = "#0f172a"         
@@ -84,6 +85,18 @@ class ScannerUI:
         )
         self.count_label.pack(pady=(0, 24), fill=tk.X)
 
+        self.last_label = tk.Label(
+            container,
+            textvariable=self.last_barcode,
+            font=("Segoe UI Semibold", 14),
+            bg="#111827",
+            fg="#e5e7eb",
+            anchor="w",
+            padx=12,
+            pady=10,
+        )
+        self.last_label.pack(pady=(0, 16), fill=tk.X)
+
         btns = ttk.Frame(container, style="TFrame")
         btns.pack()
 
@@ -112,6 +125,7 @@ class ScannerUI:
         self.running = True
         self.count = 0
         self.live_count.set("Live Count: 0")
+        self.last_barcode.set("Last Barcode: -")
         self.start_button.state(["disabled"])
         self.stop_button.state(["!disabled"])
 
@@ -130,13 +144,17 @@ class ScannerUI:
         if not messagebox.askyesno("Stop Scanning", "Are you sure you want to stop scanning?"):
             return
         self.running = False
-        stop_event.set()
+        
         self.start_button.state(["!disabled"])
         self.stop_button.state(["disabled"])
 
-    def _on_scan(self, entry_no):
+    def _on_scan(self, entry_no, barcode):
         self.count += 1
-        self.root.after(0, lambda c=self.count: self.live_count.set(f"Live Count: {c}"))
+        self.root.after(0, self._update_labels, self.count, barcode)
+
+    def _update_labels(self, count_value, barcode):
+        self.live_count.set(f"Live Count: {count_value}")
+        self.last_barcode.set(f"Last Barcode: {barcode}")
 
     def on_close(self):
         if messagebox.askyesno("Quit", "Stop scanning and exit?"):
